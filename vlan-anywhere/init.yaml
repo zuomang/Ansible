@@ -1,0 +1,114 @@
+---
+- hosts: test
+  sudo: yes
+  vars:
+    paas
+  tasks:
+    - name: Implement account lockout policy /etc/pam.d/common-auth
+      lineinfile: dest=/etc/pam.d/common-auth line="{{ item }}" state=present
+      with_items:
+          - 'auth required pam_tally.so onerr=fail no_magic_root unlock_time=1800'
+          - 'account required pam_tally.so per_user deny=5 no_magic_root reset'
+
+    - name: Implement password aging and Set a strict global umask value
+      lineinfile: dest=/etc/login.defs regexp=^PASS_MAX_DAYS line='PASS_MAX_DAYS 180'
+
+    - name: Implement password aging /etc/default/useradd
+      lineinfile: dest=/etc/default/useradd regexp=^INACTIVE line=INACTIVE=180 state=present
+
+    - name: Enforce strict permissions for /root
+      file: path=/root state=directory recurse=yes mode=0700
+
+    - name: Set minimal file system permissions on a need-to-know basis
+      file: path=/home state=directory recurse=yes mode=0755
+
+    - name: get all syslog and boot.log
+      shell: ls | grep -E 'syslog|boot.log'
+      register: result
+      args:
+          chdir: /var/log/
+
+    - name: Audit log files on a regular basis
+      file: path=/var/log/{{ item }} mode="o-wrx,g-wrx" state=file
+      with_items: result.stdout_lines
+
+    - name: Audit wtmp
+      file: path=/var/log/wtmp state=file mode="o-w"
+
+    - name: list all dpkg-statoverride and check su
+      shell: dpkg-statoverride --list | grep 'su' | wc -l
+      register: statoverride_result
+
+    - name: only users in the sudo group are able to run the su command in
+      command: dpkg-statoverride --update --add root sudo 4750 /bin/su
+      when: statoverride_result == 0
+
+    - name: Disable IRQ Balance /etc/default/irqbalance
+      lineinfile: dest=/etc/default/irqbalance regexp=^ENABLED line=ENABLED=0 state=present
+
+    - name: Secure the Console
+      file: path=/etc/security mode=0600 owner=root group=root state=directory
+
+    - name: disable some service autorestart
+      service: name={{ item }} enabled=no
+      with_items:
+          - apport
+          - dns-clean
+          - grub-common
+          - hwclock
+          - hwclock-save
+          - irqbalance
+          - ondemand
+          - plymouth
+          - plymouth-log
+          - plymouth-ready
+          - plymouth-splash
+          - plymouth-stop
+          - plymouth-upstart-bridge
+          - pppd-dns
+          - rsync
+          - rsyslog
+          - setvtrgb
+          - ufw
+          - umountntfs.sh
+          - whoopsie
+          - nfs-kernel-server
+          - smbd
+          - nmbd
+      ignore_errors: True
+
+    - name: remove some software
+      apt: name={{ item }} state=absent purge=yes
+      with_items:
+          - rsh-server
+          - telnetd
+
+    - name: add libpam-cracklib implement secure password policy
+      apt: name=libpam-cracklib state=present
+
+    - name: harden and modify /etc/pam.d/common-password
+      lineinfile: dest=/etc/pam.d/common-password line="{{ item }}" state=present
+      with_items:
+          - 'password required pam_cracklib.so dcredit=-1 ucredit=-1 lcredit=-1 minlen=8 retry=5'
+          - 'password required pam_pwhistory.so use_authtok remember=3 retry=5'
+          - 'password required pam_pwcheck.so remember=5'
+          - 'password required pam_unix.so use_authtok'
+
+    - name: install auditd to keep track of modifications in dedicated folders
+      apt: name=auditd state=present
+
+    - name: downlad ntp and provider script
+      sopy: src= {{ item }} dest=/tmp mode=0755
+      with_items:
+        - install_ntp.sh
+        - provider.sh
+
+    - name: excute provider install script
+      command: sh +x provider.sh
+      args:
+        chdir: /tmp/
+
+    - name: excute provider install script
+      command: sh +x install_ntp.sh
+      args:
+        chdir: /tmp/

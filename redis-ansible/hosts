@@ -1,0 +1,15 @@
+[master]
+master-node ansible_ssh_host=10.97.139.178
+
+[slave]
+slave-node1 ansible_ssh_host=10.97.131.254
+
+[redis:children]
+master
+slave
+
+[redis:vars]
+ansible_ssh_port=22
+ansible_ssh_private_key_file=/Users/Mang/.ssh/monsoon
+ansible_ssh_user=c5230494
+redis_password=qwaszx12
