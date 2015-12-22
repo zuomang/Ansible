@@ -2,7 +2,9 @@
 - hosts: test
   sudo: yes
   vars:
-    paas
+    umask: 022
+    pass_max_days: 180
+    pass_min_days: 1
   tasks:
     - name: Implement account lockout policy /etc/pam.d/common-auth
       lineinfile: dest=/etc/pam.d/common-auth line="{{ item }}" state=present
@@ -11,7 +13,7 @@
           - 'account required pam_tally.so per_user deny=5 no_magic_root reset'
 
     - name: Implement password aging and Set a strict global umask value
-      lineinfile: dest=/etc/login.defs regexp=^PASS_MAX_DAYS line='PASS_MAX_DAYS 180'
+      template: src=login.defs.j2 dest=/etc/login.defs
 
     - name: Implement password aging /etc/default/useradd
       lineinfile: dest=/etc/default/useradd regexp=^INACTIVE line=INACTIVE=180 state=present
@@ -36,12 +38,12 @@
       file: path=/var/log/wtmp state=file mode="o-w"
 
     - name: list all dpkg-statoverride and check su
-      shell: dpkg-statoverride --list | grep 'su' | wc -l
+      shell: dpkg-statoverride --list | grep '/bin/su' | wc -l
       register: statoverride_result
 
     - name: only users in the sudo group are able to run the su command in
       command: dpkg-statoverride --update --add root sudo 4750 /bin/su
-      when: statoverride_result == 0
+      when: statoverride_result.stdout|int == 0
 
     - name: Disable IRQ Balance /etc/default/irqbalance
       lineinfile: dest=/etc/default/irqbalance regexp=^ENABLED line=ENABLED=0 state=present
@@ -82,7 +84,7 @@
       with_items:
           - rsh-server
           - telnetd
-
+    
     - name: add libpam-cracklib implement secure password policy
       apt: name=libpam-cracklib state=present
 
@@ -98,15 +100,9 @@
       apt: name=auditd state=present
 
     - name: downlad ntp and provider script
-      sopy: src= {{ item }} dest=/tmp mode=0755
+      copy: src={{ item }} dest=/tmp mode=0755
       with_items:
-        - install_ntp.sh
-        - provider.sh
-
-    - name: excute provider install script
-      command: sh +x provider.sh
-      args:
-        chdir: /tmp/
+        - 'install_ntp.sh'
 
     - name: excute provider install script
       command: sh +x install_ntp.sh

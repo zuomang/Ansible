@@ -1,5 +1,7 @@
 [test]
 node1 ansible_ssh_host=10.97.150.129
+node2 ansible_ssh_host=10.97.144.133
+node3 ansible_ssh_host=10.97.131.254
 
 [test:vars]
 ansible_ssh_port=22
