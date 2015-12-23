@@ -1,6 +1,6 @@
 ---
 - hosts: redis
-  remote_user: root
+  sudo: yes
   tasks:
     - name: download redis
       get_url: url=http://download.redis.io/releases/redis-3.0.5.tar.gz dest=/tmp
@@ -10,34 +10,36 @@
 
     - name: make install redis
       command: make install
-      sudo: yes
       args:
           chdir: /tmp/redis-3.0.5/
 
     - name: remove redis
       shell: rm -rf /tmp/redis-*
-      sudo: yes
 
-    - name: git clone redis deploy
-      git: repo=https://github.wdf.sap.corp/i319433/redis_deploy.git dest=/tmp/redis_deploy update=yes force=yes
+    - name: copy redis deploy file(debug)
+      copy: src=redis_deploy dest=/tmp
+
+    # - name: git clone redis deploy file
+    #   git: repo=https://github.wdf.sap.corp/i319433/redis_deploy.git dest=/tmp/redis_deploy update=yes force=yes
 
     - name: add redis deploy script execute permission
       file: path=/tmp/redis_deploy state=directory recurse=yes mode="a+x"
 
+    - name: copy redis service script to remote
+      template: src=redis.j2 dest=/etc/init.d/ mode="a+x"
+
 - hosts: master
-  remote_user: root
+  sudo: yes
   tasks:
     - name: start master service
       command: env TYPE=MASTER MASTERIP={{ hostvars['master-node']['ansible_eth0']['ipv4']['address'] }} PASSWORD={{ redis_password }} ./deploy_redis.sh
       args:
         chdir: /tmp/redis_deploy/deploy
-      sudo: yes
 
 - hosts: slave
-  remote_user: root
+  sudo: yes
   tasks:
     - name: start slave service
       command: env TYPE=SLAVE MASTERIP={{ hostvars['master-node']['ansible_eth0']['ipv4']['address'] }} PASSWORD={{ redis_password }} ./deploy_redis.sh
       args:
         chdir: /tmp/redis_deploy/deploy
-      sudo: yes

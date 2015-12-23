@@ -2,7 +2,8 @@
 master-node ansible_ssh_host=10.97.139.178
 
 [slave]
-slave-node1 ansible_ssh_host=10.97.131.254
+slave-node1 ansible_ssh_host=10.97.130.49
+slave-node2 ansible_ssh_host=10.97.144.133
 
 [redis:children]
 master
