@@ -16,20 +16,20 @@
     - name: remove redis
       shell: rm -rf /tmp/redis-*
 
-    - name: copy redis deploy file(debug)
-      copy: src=redis_deploy dest=/tmp
+    # - name: copy redis deploy file(debug)
+    #   copy: src=redis_deploy dest=/tmp
 
-    # - name: git clone redis deploy file
-    #   git: repo=https://github.wdf.sap.corp/i319433/redis_deploy.git dest=/tmp/redis_deploy update=yes force=yes
+    - name: git clone redis deploy file
+      git: repo=https://github.wdf.sap.corp/i319433/redis_deploy.git dest=/tmp/redis_deploy update=yes force=yes
 
     - name: add redis deploy script execute permission
       file: path=/tmp/redis_deploy state=directory recurse=yes mode="a+x"
 
-    - name: copy redis service script to remote
-      template: src={{ item.src }} dest=/etc/init.d/{{ item.dest }} mode="a+x"
-      with_items:
-          - {src: 'redis_6379.j2', dest: 'redis_6379'}
-          - {src: 'redis_sentinel.j2', dest: 'redis_sentinel'}
+    # - name: copy redis service script to remote
+    #   template: src={{ item.src }} dest=/etc/init.d/{{ item.dest }} mode="a+x"
+    #   with_items:
+    #       - {src: 'redis_6379.j2', dest: 'redis_6379'}
+    #       - {src: 'redis_sentinel.j2', dest: 'redis_sentinel'}
 
 - hosts: master
   sudo: yes

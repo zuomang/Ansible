@@ -7,6 +7,7 @@ function exits() {
 count=`ps -ef |grep "redis-server" |grep -v "grep" |wc -l`
 if [ $count -ne 0 ];then
     # shutdown redis sentinel shutdown
+    echo "shutdown redis sentinel shutdown"
     redis-cli -p 26379 shutdown
     redis-cli -p 6379 -a ${PASSWORD} shutdown
 fi
