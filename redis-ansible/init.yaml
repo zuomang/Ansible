@@ -26,7 +26,10 @@
       file: path=/tmp/redis_deploy state=directory recurse=yes mode="a+x"
 
     - name: copy redis service script to remote
-      template: src=redis.j2 dest=/etc/init.d/ mode="a+x"
+      template: src={{ item.src }} dest=/etc/init.d/{{ item.dest }} mode="a+x"
+      with_items:
+          - {src: 'redis_6379.j2', dest: 'redis_6379'}
+          - {src: 'redis_sentinel.j2', dest: 'redis_sentinel'}
 
 - hosts: master
   sudo: yes
